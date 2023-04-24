@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,13 +9,15 @@ import (
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 const (
 	gladosUrl      = "https://glados.rocks/api/user/checkin"
-	pushToken      = "xxx_push_token" // 前往 https://www.pushplus.plus/ 获取Token
-	v2freeLoginUrl = "https://v2free.org/auth/login"
-	v2freeCheckUrl = "https://v2free.org/user/checkin"
+	pushToken      = "a5c767e0ffde4b13917f825e508448be"
+	v2freeLoginUrl = "https://w1.v2free.top/auth/login"
+	v2freeCheckUrl = "https://w1.v2free.net/user/checkin"
+	v2freeUserUrl  = "https://w1.v2free.net/user"
 )
 
 type Account struct {
@@ -33,8 +36,88 @@ type Result struct {
 
 var gladosAccounts = []Account{
 	{
+		ID:     "xxx@88.com",
+		Cookie: "cf_clearance=WGyq9l1rvt8tsFE2NvhFUWVSzw1TnPzmQb7ZidJXJ_w-1659352632-0-150; koa:sess=eyJ1c2VySWQiOjEwNTIxNCwiY29kZSI6IjczMDhZLUIyWjhOLU1KUEw5LU1IWUZCIiwiX2V4cGlyZSI6MTY4OTc4NTg0MjM4OSwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=qJhcKdEAXuG_xXh7NrB3JLNr_mY; googtrans=/auto/zh-CN; googtrans=/auto/zh-CN",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
+		ID:     "orz3-8@protonmail.com",
+		Cookie: "_ga=GA1.2.530142443.1639584545; koa:sess=eyJ1c2VySWQiOjE5ODYyNCwiX2V4cGlyZSI6MTY4Nzk0NDkxMTc1NiwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=1U9ei2WJue4LSErjLexACMLrhb8; __stripe_mid=25344988-3253-404d-8986-0b2a009f5086805478; _gid=GA1.2.639938267.1673534053; _gat_gtag_UA_104464600_2=1",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
 		ID:     "xxx@qq.com",
-		Cookie: "xxx_cookie",
+		Cookie: "koa:sess=eyJ1c2VySWQiOjEwNTU1NSwiX2V4cGlyZSI6MTY4Nzk3NjAwOTk0MiwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=X6vi4rnD7BMbqWX-eK-1214c7D4",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
+		ID:     "orz3-8@pm.me",
+		Cookie: "_ga=GA1.2.1413178732.1673089766; koa:sess=eyJ1c2VySWQiOjIwODQ5NSwiX2V4cGlyZSI6MTY5OTAwOTg0NjA3OCwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=vfLLiyOW5jF43iplgSy24hLUbsE; _gid=GA1.2.33136766.1673537618",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
+		ID:     "xxx@gmail.com",
+		Cookie: "koa:sess=eyJ1c2VySWQiOjI1MzA2NCwiX2V4cGlyZSI6MTcwMTQyMDI1MTAxNCwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=U2Iw4sObS6z6Lt4QV42jpZkkbnw",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
+		ID:     "xxx@hotmail.com",
+		Cookie: "_ga=GA1.1.178142109.1676899058; koa:sess=eyJ1c2VySWQiOjI4MDE4MiwiX2V4cGlyZSI6MTcwMjgxOTEwNjcyNCwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=llMHBwoxZeyhj93e_0Oryq1bIJE; _ga_CZFVKMNT9J=GS1.1.1676899057.1.1.1676899216.0.0.0",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
+		ID:     "orz3-8@proton.me",
+		Cookie: "koa:sess=eyJ1c2VySWQiOjI0MzA4NywiX2V4cGlyZSI6MTcwMTYyMTI5ODk0NiwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=o0dzSX-CHzmA0zYhFckJ8CL4S-g; __stripe_mid=ddb3f6d6-8bdd-4df2-9959-c3837ac320d1fe9cbe; _ga_CZFVKMNT9J=GS1.1.1678104474.1.1.1678105227.0.0.0; _ga=GA1.2.1597457881.1678104474; _gid=GA1.2.85789393.1678104475",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
+		ID:     "y@pm",
+		Cookie: "koa:sess=eyJ1c2VySWQiOjI5MzgxMiwiX2V4cGlyZSI6MTcwNDQ3NDQ3NjIxMywiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=btyqVA_PF3SzLd6H4q8eqtywAYk",
+		Req: Request{
+			URL:     gladosUrl,
+			Method:  http.MethodPost,
+			Payload: strings.NewReader(`{"token":"glados.network"}`),
+			Headers: map[string]string{"content-type": "application/json;charset=UTF-8"},
+		},
+	},
+	{
+		ID:     "johnwong@chinamail.com",
+		Cookie: "_gid=GA1.2.7057315.1681145872; koa:sess=eyJ1c2VySWQiOjMyMzc2NCwiX2V4cGlyZSI6MTcwNzExODE3MjcwOSwiX21heEFnZSI6MjU5MjAwMDAwMDB9; koa:sess.sig=CE1lR7kOjtoGjd4pGSeddzGtZxk; _ga=GA1.1.802715368.1681145872; _ga_CZFVKMNT9J=GS1.1.1681198024.3.1.1681198273.0.0.0",
 		Req: Request{
 			URL:     gladosUrl,
 			Method:  http.MethodPost,
@@ -46,14 +129,74 @@ var gladosAccounts = []Account{
 
 var v2freeAccounts = []Account{
 	{
-		ID:       "xx@qq.com",
-		Password: "pwd",
+		ID:       "john@free.com",
+		Password: "2583585355",
 		Req: Request{
 			URL:    v2freeLoginUrl,
 			Method: http.MethodPost,
 			Headers: map[string]string{
 				"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
-				"referer":      "https://v2free.org/auth/login",
+				"referer":      v2freeLoginUrl,
+			},
+		},
+	},
+	{
+		ID:       "johnson@free.com",
+		Password: "2583585355",
+		Req: Request{
+			URL:    v2freeLoginUrl,
+			Method: http.MethodPost,
+			Headers: map[string]string{
+				"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+				"referer":      v2freeLoginUrl,
+			},
+		},
+	},
+	{
+		ID:       "orz3-8@protonmail.com",
+		Password: "2583585355",
+		Req: Request{
+			URL:    v2freeLoginUrl,
+			Method: http.MethodPost,
+			Headers: map[string]string{
+				"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+				"referer":      v2freeLoginUrl,
+			},
+		},
+	},
+	{
+		ID:       "orz3-8@proton.me",
+		Password: "2583585355",
+		Req: Request{
+			URL:    v2freeLoginUrl,
+			Method: http.MethodPost,
+			Headers: map[string]string{
+				"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+				"referer":      v2freeLoginUrl,
+			},
+		},
+	},
+	{
+		ID:       "john@wong.cn",
+		Password: "johnwong",
+		Req: Request{
+			URL:    v2freeLoginUrl,
+			Method: http.MethodPost,
+			Headers: map[string]string{
+				"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+				"referer":      v2freeLoginUrl,
+			},
+		},
+	},
+	{
+		ID:       "chuan@yu.com",
+		Password: "n7L2LqtW3kpv#RF%",
+		Req: Request{
+			URL:    v2freeLoginUrl,
+			Method: http.MethodPost,
+			Headers: map[string]string{
+				"content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+				"referer":      v2freeLoginUrl,
 			},
 		},
 	},
@@ -136,7 +279,7 @@ func (req *Request) SendRequest() (*http.Response, error) {
 		select {
 		case <-ctx.Done():
 			// 超时或主动取消
-			return nil, fmt.Errorf("Request timed out: %v", ctx.Err())
+			return nil, fmt.Errorf("request timed out: %v", ctx.Err())
 		case <-time.After(2 * time.Second):
 			// 等待 2 秒钟后再次尝试
 		}
@@ -151,7 +294,13 @@ func (req *Request) SendRequest() (*http.Response, error) {
 
 func (req *Request) GetResponseBody(res *http.Response) ([]byte, error) {
 	body, err := io.ReadAll(res.Body)
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}(res.Body)
 
 	if err != nil {
 		return nil, err
@@ -168,17 +317,13 @@ func (req *Request) GetAccountResponseFunc(acc *Account) (*http.Response, []byte
 
 func (req *Request) GetResponseFunc() (*http.Response, []byte, error) {
 	res, err := req.SendRequest()
-
 	if err != nil {
 		return nil, nil, err
 	}
-
 	body, err := req.GetResponseBody(res)
-
 	if err != nil {
 		return nil, nil, err
 	}
-
 	return res, body, nil
 }
 
@@ -210,7 +355,6 @@ func (push pushMap) CheckinV2f() {
 	for _, account := range v2freeAccounts {
 		wg.Add(1)
 		go func(acc Account) {
-
 			acc.Req.Payload = strings.NewReader(fmt.Sprintf("email=%s&passwd=%s&code=", url.QueryEscape(acc.ID), url.QueryEscape(acc.Password)))
 
 			res, err := acc.Req.SendRequest()
@@ -221,7 +365,7 @@ func (push pushMap) CheckinV2f() {
 
 			acc.Req.URL = v2freeCheckUrl
 			acc.Req.Payload = strings.NewReader("")
-			acc.Req.Headers["referer"] = "https://v2free.org/user"
+			acc.Req.Headers["referer"] = v2freeUserUrl
 			cookies := res.Header["Set-Cookie"]
 			acc.Cookie = acc.getCookie(cookies)
 
